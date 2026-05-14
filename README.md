@@ -37,13 +37,11 @@
     
 2. Baseline модели
 
-    CountVectorizer + классические ML алгоритмы:
-        LogisticRegression
-        DecisionTreeClassifier
-        RandomForestClassifier
-        LGBMClassifier
-    TF-IDF векторизация
-    Очистка данных: приведение к нижнему регистру, удаление лишних пробелов
+В рамках Baseline были использованы CountVectorizer и TfidfVectorizer с классическими ML алгоритмами:
+- LogisticRegression
+- RandomForestClassifier
+- XGBClassifier
+
 
 3. Нейронные сети
 
