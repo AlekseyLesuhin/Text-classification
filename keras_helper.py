@@ -1,8 +1,10 @@
 import numpy as np
 import pandas as pd
 
+from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Embedding, SimpleRNN, LSTM, Conv1D, GlobalMaxPooling1D, Dense, Dropout
+from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.optimizers import Adam
 
 from sklearn.model_selection import train_test_split, StratifiedKFold
@@ -52,7 +54,7 @@ def build_model(model_type, vocab_size, max_len, lr, embedding_matrix=None):
     return model
 
 
-def train_model_cv(type_of_model, X_train, y_train, MAX_WORDS, MAX_LEN, learn_rate, embedding_matrix=None):
+def train_model_cv(type_of_model, X_train_text, y_train, MAX_WORDS, MAX_LEN, learn_rate, embedding_matrix=None):
     lr = learn_rate
     model_type = type_of_model
     skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
@@ -63,8 +65,19 @@ def train_model_cv(type_of_model, X_train, y_train, MAX_WORDS, MAX_LEN, learn_ra
     f1_scores = []
     roc_scores = []
     
-    for fold, (train_idx, val_idx) in enumerate(skf.split(X_train, y_train)):
+    for fold, (train_idx, val_idx) in enumerate(skf.split(X_train_text, y_train)):
         print(f"Fold {fold+1}")
+
+        MAX_WORDS = 10000
+        MAX_LEN = 100
+        
+        tok = Tokenizer(num_words=MAX_WORDS, oov_token='<OOV>')
+        tok.fit_on_texts(X_train_text)
+        
+        # train
+        X_train_seq = tok.texts_to_sequences(X_train_text)
+        X_train = pad_sequences(X_train_seq, maxlen=MAX_LEN, padding='post')
+
         
         X_tr, X_val = X_train[train_idx], X_train[val_idx]
         y_tr, y_val = y_train[train_idx], y_train[val_idx]
@@ -73,7 +86,7 @@ def train_model_cv(type_of_model, X_train, y_train, MAX_WORDS, MAX_LEN, learn_ra
         
         model.fit(
             X_tr, y_tr,
-            epochs=30,
+            epochs=15,
             batch_size=32,
             validation_data=(X_val, y_val),
             verbose=1
