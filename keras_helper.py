@@ -6,6 +6,7 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Embedding, SimpleRNN, LSTM, Conv1D, GlobalMaxPooling1D, Dense, Dropout
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.callbacks import EarlyStopping
 
 from sklearn.model_selection import train_test_split, StratifiedKFold
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
@@ -72,23 +73,33 @@ def train_model_cv(type_of_model, X_train_text, y_train, MAX_WORDS, MAX_LEN, lea
         MAX_LEN = 100
         
         tok = Tokenizer(num_words=MAX_WORDS, oov_token='<OOV>')
-        tok.fit_on_texts(X_train_text)
         
-        # train
-        X_train_seq = tok.texts_to_sequences(X_train_text)
-        X_train = pad_sequences(X_train_seq, maxlen=MAX_LEN, padding='post')
-
         
-        X_tr, X_val = X_train[train_idx], X_train[val_idx]
+        X_tr_text, X_val_text = X_train_text[train_idx], X_train_text[val_idx]
         y_tr, y_val = y_train[train_idx], y_train[val_idx]
+
+        tok.fit_on_texts(X_tr_text)
+
+        X_tr_text_seq = tok.texts_to_sequences(X_tr_text)
+        X_tr = pad_sequences(X_tr_text_seq, maxlen=MAX_LEN, padding='post')
+
+        X_val_text_seq = tok.texts_to_sequences(X_val_text)
+        X_val = pad_sequences(X_val_text_seq, maxlen=MAX_LEN, padding='post')
         
         model = build_model(model_type, MAX_WORDS, MAX_LEN, lr, embedding_matrix = embedding_matrix)
         
+        early_stop = EarlyStopping(
+            monitor='val_loss',
+            patience=3,
+            restore_best_weights=True
+        )
+        
         model.fit(
             X_tr, y_tr,
-            epochs=15,
+            epochs=30,
             batch_size=32,
             validation_data=(X_val, y_val),
+            callbacks = [early_stop],
             verbose=1
         )
         
